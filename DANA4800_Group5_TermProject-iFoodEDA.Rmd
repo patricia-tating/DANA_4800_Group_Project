@@ -1,0 +1,212 @@
+---
+title: "DANA4800-Term Project-iFood EDA"
+author: "Group 5"
+date: "2023-11-23"
+output: html_document
+---
+
+The iFood dataset contains observations for 2205 customers with originally 38 variables. For the purposes of this study, we will only look at 5 variables as follows:
+
+* MaritalStatus (categorical) - customer's marital status
+* Education (categorical) - customer's level of education
+* AcceptedSummary (categorical) - 1 if customer accepted any offer in the campaign, 0 otherwise
+* Income (Numerical) - customer's yearly household income in R$
+* MntTotal (Numerical) - total amount of everything purchased in last 2 years 
+
+
+## Reading the CSV file
+```{r}
+ifood <- read.csv("ifood_df.csv", header = TRUE)
+head(ifood)
+```
+# Marital Status - Univariate Analysis
+
+## Frequency Table
+```{r}
+marital_status_freq = table(ifood$MaritalStatus)
+marital_status_freq
+```
+## Relative Frequency Table
+```{r}
+marital_status_pct = round(marital_status_freq*100/sum(marital_status_freq),2)
+marital_status_pct
+
+```
+## Pie-chart
+```{r}
+ lables <- paste(names(marital_status_pct)," (", marital_status_pct,"%)", sep = "")
+```
+
+
+```{r}
+pie(marital_status_pct, label  = lables,col = c("#c61724","#bed04e","#ebd456","#dd869a", "#8161c4"))
+```
+
+## Bar-graph
+```{r}
+barplot(marital_status_freq, col = c("#c61724","#bed04e","#ebd456","#dd869a", "#8161c4"))
+```
+
+**Well-educated customer base with 50% holding Bachelor's degree, 22% holding Ph.D., and 17% holding Master’s degree, contributing to their substantial income.**
+
+# Education - Univariate Analysis
+
+# Frequency Table
+```{r}
+edu_freq <- table(ifood$Education)
+edu_pct <- round(prop.table(edu_freq)*100, 2)
+```
+
+# Bar Graph
+
+Specify colors for each education level:
+```{r}
+colors = c("#c61724","#bed04e","#ebd456","#dd869a", "#8161c4")
+```
+
+```{r}
+# Get bar positions
+bar_positions <- barplot(edu_pct,                          
+                         col = colors,                          
+                         main = "Distribution of Education Levels",                          
+                         xlab = "Education Level",                         
+                         ylab = "Percentage (%)")
+
+# Create the bar plot again using bar_positions and specify colors for the bars
+
+barplot(edu_pct, col = colors, 
+        main = "Distribution of Education Levels", 
+        xlab = "Education Level", 
+        ylab = "Percentage (%)", 
+        ylim = c(0, max(edu_pct) + 5))
+
+# Add text labels with the numeric values on each bar in black
+text(x = bar_positions,      
+     y = edu_pct + 1,      
+     labels = paste0(round(edu_pct, 2), "%"),      
+     pos = 3,      
+     cex = 0.8,      
+     col = "black")
+
+```
+
+# Education and Campaign Acceptance - Bivariate Analysis
+
+## Two-way Table
+```{r}
+ifood_edu_cam = table(ifood$Education, ifood$AcceptedSummary)
+
+colnames(ifood_edu_cam) <- c("Not Accepted", "Accepted")
+ifood_edu_cam
+```
+## Relative Frequency Two-Way Table (Option 1)
+
+```{r}
+cond_percent <- function(X) paste0(round(X/sum(X) * 100, 2), '%')
+result_percent <- apply(ifood_edu_cam, 2, cond_percent)
+
+
+result_df <- as.data.frame(result_percent)
+row.names(result_df) <- c("Post Degree", "High School", "Graduation", "Master", "PhD")
+colnames(result_df) <- c("Not Accepted", "Accepted")
+result_df
+
+```
+The AcceptedSummary indicates the number of campaigns (out of a total of 5) that the client has accepted, where 1 signifies acceptance of at least one campaign, and 0 indicates none.
+
+# Relative Frequency Two-Way Table (Option 2)
+
+```{r}
+percentage_table <- prop.table(ifood_edu_cam) * 100
+percentage_table
+```
+
+```{r}
+bp <- barplot(ifood_edu_cam,
+              legend.text = c("Post Degree", "High School", "Graduation", "Master", "PhD"), 
+              col = c("#c61724","#bed04e","#ebd456","#dd869a", "#8161c4"),
+              ylab = "Campaigns Acceptance", 
+              xlab = "Education", 
+              beside = TRUE)
+    
+
+# Adding text labels on top of the bars with corresponding percentages
+text(x = bp, 
+     y = ifood_edu_cam + 1, 
+     labels = paste0(round(percentage_table, 1), "%"),  # Format as percentage
+     col = "black", 
+          pos = 3)  # Adjust 'pos' to control the position of the labels
+     
+```
+
+**The two-groups of bars look alike so we can assume that the customer's education level and campaign acceptance are independent to each other.**
+
+## Chi-square analysis 
+
+Hypothesis:
+
+* H0: Education and Campaign Acceptance are independent among all subjects in the population.
+* Ha: Education and Campaign Acceptance are not independent among all subjects in the population.
+
+```{r}
+chisq.test(ifood_edu_cam)
+```
+df = 4 correspond to a  decision point of =  9.49
+
+Since the chi-squared value of 15.663 is greater than 9.49, we reject the null hypothesis and conclude that Education and Campaign Acceptance are not significantly independent of each other among all subjects in the population.
+
+Interpretation:
+
+By looking the graph the variable looks independently but performing the chi- square we can see that there is some kinda dependency.
+
+# Income - Univariate Analysis
+
+## IQR
+```{r}
+income <- ifood$Income
+IQR(income)
+```
+## Quartile and Summary Statistics
+```{r}
+quantile(income, probs = c(0.00, 0.25, 0.5, 0.75, 1.00))
+```
+```{r}
+summary(income)
+```
+
+## Boxplot
+```{r}
+boxplot(income/1000, xlab = "Customer Income (R$ 1000)", main = "Income", horizontal = TRUE, col = "#c61724")
+```
+
+**The distribution is approximately symmetrical with the mean and median almost equal.**
+
+# Income and Amount Spent - Bivariate Analysis
+
+## Correlation Coefficient
+```{r}
+total_income <-ifood$Income/1000
+amount_spent <- ifood$MntTotal
+
+cor(total_income,amount_spent)
+```
+## Scatterplot and Regression Analysis
+```{r}
+plot(total_income,amount_spent, main = "Relationship between Customer Income and Total Amount Spent", xlab = "Customer Income (R$ 1000)", ylab =  "Total Amount Spent (R$)")
+least <- lm(amount_spent ~ total_income)
+abline(least, col = "red")
+```
+
+## Regression Equation
+```{r}
+least <- lm(amount_spent ~ total_income)
+summary(least)
+```
+
+**Total amount spent = -619 + 23*(Income)**
+
+**For every extra thousand dollars earned, households tend to spend an extra 23 dollars.** 
+
+
+
+
